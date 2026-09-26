@@ -1,6 +1,6 @@
 export default {
     owner: ['573246039414'],
-    botNumber: '',
+    botNumber: '573246039414',
     sessionName: 'Sessions/Owner',
     version: '^2.0 - Latest',
     dev: "pro",
