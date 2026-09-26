@@ -167,7 +167,7 @@ if (methodCodeQR) {
   phoneInput = readlineSync.question(chalk.bold.magenta('---> ')); // <--- ESTA LÍNEA ROMPE RENDER
   phoneNumber = normalizePhoneForPairing(phoneInput);
   }
-}
+
 
 let reconexion = 0;
 const intentos = 15;
