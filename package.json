@@ -1,0 +1,59 @@
+{
+  "name": "bot",
+  "version": "3.0",
+  "description": "BOTDEPRUEBA: WhatsApp Bot ultra optimizado para Termux basado en Baileys.",
+  "main": "index.js",
+  "type": "module",
+  "imports": {
+    "#serialize": "./core/message.js",
+    "#system/*": "./core/system/*.js",
+    "#utils/*": "./utils/*.js",
+    "#config": "./config.js"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "whatsapp-bot",
+    "baileys-md",
+    "bot-wa",
+    "multi-device"
+  ],
+  "author": "iamDestroy",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0",
+    "npm": ">=10.9.4"
+  },
+  "dependencies": {
+    "@vitalets/google-translate-api": "^8.0.0",
+    "@whiskeysockets/baileys": "github:this-xys/WaSocket",
+    "baileys": "github:this-xys/WaSocket",
+    "acrcloud": "^1.4.0",
+    "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
+    "axios": "^0.24.0",
+    "cfonts": "latest",
+    "chalk": "^4.1.2",
+    "cheerio": "npm:cheerio@1.0.0-rc.12",
+    "file-type": "^16.5.4",
+    "fluent-ffmpeg": "^2.1.2",
+    "form-data": "^4.0.0",
+    "gradient-string": "^2.0.2",
+    "grapheme-splitter": "^1.0.4",
+    "human-readable": "^0.2.1",
+    "jimp": "^1.6.1",
+    "lodash": "^4.17.21",
+    "link-preview-js": "^3.0.13",
+    "moment-timezone": "^0.5.37",
+    "node-cache": "latest",
+    "pdf-parse": "^1.1.1",
+    "node-webpmux": "^3.2.0",
+    "pino": "^8.8.0",
+    "qrcode-terminal": "^0.12.0",
+    "readline-sync": "^1.4.10",
+    "syntax-error": "^1.4.0",
+    "ws": "^8.18.3",
+    "yt-search": "^2.10.4"
+  }
+}
