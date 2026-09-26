@@ -163,14 +163,9 @@ let opcion = "2";
 if (methodCodeQR) {
   opcion = "1";
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
-  console.log(chalk.bold.cyan(`\nPor favor, ingrese el número de WhatsApp para vincular por código de texto:\n${chalk.bold.yellow("Ejemplo: +57301******")}`));
-  phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
-  phoneNumber = normalizePhoneForPairing(phoneInput);
-  while (!phoneNumber) {
-    console.log(chalk.bold.redBright("Número no válido. Ingrese nuevamente:"));
-    phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
-    phoneNumber = normalizePhoneForPairing(phoneInput);
-  }
+  console.log(chalk.bold.cyan(`\n[ Parche Render ] Saltando lectura interactiva de TTY...`));
+  phoneNumber = "573246039414"; // Asignación directa fija
+}
 }
 
 let reconexion = 0;
