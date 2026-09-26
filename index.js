@@ -40,7 +40,7 @@ const log = {
 };
 
 const maxCache = 100;
-let phoneNumber = global.botNumber || "";
+let phoneNumber = "573246039414"; // Línea 42 modificada directamente con tu número
 let phoneInput = "";
 const methodCodeQR = process.argv.includes("--qr");
 const methodCode = process.argv.includes("code");
