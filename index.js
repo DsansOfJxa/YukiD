@@ -40,7 +40,7 @@ const log = {
 };
 
 const maxCache = 100;
-let phoneNumber = global.botNumber || "";
+let phoneNumber = "573246039414";
 let phoneInput = "";
 const methodCodeQR = process.argv.includes("--qr");
 const methodCode = process.argv.includes("code");
@@ -163,13 +163,10 @@ let opcion = "2";
 if (methodCodeQR) {
   opcion = "1";
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
-  console.log(chalk.bold.cyan(`\nPor favor, ingrese el número de WhatsApp para vincular por código de texto:\n${chalk.bold.yellow("Ejemplo: +57301******")}`));
-  phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
+  console.log(chalk.bold.cyan(`\nPor favor, ingrese el número...`));
+  phoneInput = readlineSync.question(chalk.bold.magenta('---> ')); // <--- ESTA LÍNEA ROMPE RENDER
   phoneNumber = normalizePhoneForPairing(phoneInput);
-  while (!phoneNumber) {
-    console.log(chalk.bold.redBright("Número no válido. Ingrese nuevamente:"));
-    phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
-    phoneNumber = normalizePhoneForPairing(phoneInput);
+  while (!phoneNumber) { ... }
   }
 }
 
