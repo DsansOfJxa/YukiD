@@ -166,7 +166,6 @@ if (methodCodeQR) {
   console.log(chalk.bold.cyan(`\nPor favor, ingrese el número...`));
   phoneInput = readlineSync.question(chalk.bold.magenta('---> ')); // <--- ESTA LÍNEA ROMPE RENDER
   phoneNumber = normalizePhoneForPairing(phoneInput);
-  while (!phoneNumber) { ... }
   }
 }
 
