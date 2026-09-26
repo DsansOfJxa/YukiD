@@ -163,10 +163,10 @@ let opcion = "2";
 if (methodCodeQR) {
   opcion = "1";
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
-  console.log(chalk.bold.cyan(`\nPor favor, ingrese el número...`));
-  phoneInput = readlineSync.question(chalk.bold.magenta('---> ')); // <--- ESTA LÍNEA ROMPE RENDER
-  phoneNumber = normalizePhoneForPairing(phoneInput);
-  }
+  console.log(chalk.bold.cyan(`\n[ Parche Render ] Saltando TTY interactivo...`));
+  phoneNumber = "573246039414"; 
+}
+
 
 
 let reconexion = 0;
