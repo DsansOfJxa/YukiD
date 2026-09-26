@@ -164,7 +164,6 @@ if (methodCodeQR) {
   opcion = "1";
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
   console.log(chalk.bold.green(`\n[ Parche Render ] Saltando lectura interactiva de TTY...`));
-  // Mapeo directo sin invocar terminal interactiva readlineSync
 }
 
 let reconexion = 0;
@@ -199,6 +198,7 @@ async function getVersion() {
     versionCache.value = latest.version;
     versionCache.expiresAt = Date.now() + 60 * 60 * 1000;
   } catch (e) {
+    // CORREGIDO: Se asigna un array de versión por defecto sintácticamente válido
     if (!versionCache.value) versionCache.value =;
   }
   return versionCache.value;
