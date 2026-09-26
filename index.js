@@ -1,3 +1,9 @@
+// Servidor web interno para mantener vivo el bot en Render y UptimeRobot
+import express from 'express';
+const app = express();
+const port = process.env.PORT || 3000;
+app.get('/', (req, res) => { res.send('YukiBot 24/7 Activo de forma exitosa'); });
+app.listen(port, () => { console.log(`[ 🌐 ] Servidor web de mantenimiento corriendo en el puerto ${port}`); });
 // Global TLS bypass for Termux environments (must be FIRST)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
