@@ -31,7 +31,7 @@ export default {
             case 'channel':
               return `Canal › *${v.name}*\n❒ Url › ${v.url}\nSubscriptores › ${v.subCountLabel} (${v.subCount})\n✿ Videos totales › ${v.videoCount}`.trim();
           }
-        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─ challenge ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
+        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─〬 ׅ┄╌ ۫... ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
 
         await client.sendMessage(m.chat, { image: { url: armar[0].image }, caption: teks2 }, { quoted: m });
       } catch (e) {
@@ -59,25 +59,14 @@ export default {
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
     const timestamp = Date.now();
 
-    // Reconstruir archivo de cookies desde la variable de entorno YT_COOKIES
-    const cookiePath = path.join(tmpDir, 'cookies.txt');
-    if (process.env.YT_COOKIES) {
-      try {
-        fs.writeFileSync(cookiePath, Buffer.from(process.env.YT_COOKIES, 'base64').toString('utf-8'));
-      } catch (err) {
-        console.error('Error al escribir cookies.txt:', err);
-      }
-    }
-
-    const cookieFlag = fs.existsSync(cookiePath) ? `--cookies "${cookiePath}"` : '';
-
     // AUDIO (/play)
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
       const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        // Cambiado para usar el módulo directo de Python
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -104,7 +93,8 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        // Cambiado para usar el módulo directo de Python
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
