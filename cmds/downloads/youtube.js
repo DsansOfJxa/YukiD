@@ -1,27 +1,11 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 
-async function getMediaUrl(youtubeUrl, isAudio = true) {
-  // Servicio alternativo de extracción por API
-  const apiUrl = `https://api.vreden.web.id/api/ytmp3?url=${encodeURIComponent(youtubeUrl)}`;
-  const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error('Falló el servidor de conversión.');
-  
-  const data = await res.json();
-  if (data?.result?.download?.url) {
-    return data.result.download.url;
-  }
-  
-  // Respaldo secundario si falla la primera API
-  const backupApi = `https://api.lolhuman.xyz/api/ytaudio2?apikey=GataDios&url=${encodeURIComponent(youtubeUrl)}`;
-  const res2 = await fetch(backupApi);
-  if (res2.ok) {
-    const data2 = await res2.json();
-    if (data2?.result?.link) return data2.result.link;
-  }
-
-  throw new Error('No se pudo extraer el enlace de descarga.');
-}
+const execPromise = promisify(exec);
 
 export default {
   help: ['play', 'play2', 'ytsearch'],
@@ -47,7 +31,7 @@ export default {
             case 'channel':
               return `Canal › *${v.name}*\n❒ Url › ${v.url}\nSubscriptores › ${v.subCountLabel} (${v.subCount})\n✿ Videos totales › ${v.videoCount}`.trim();
           }
-        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─ challenge ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
+        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─〬 ׅ┄╌ ۫... ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
 
         await client.sendMessage(m.chat, { image: { url: armar[0].image }, caption: teks2 }, { quoted: m });
       } catch (e) {
@@ -57,7 +41,7 @@ export default {
     }
 
     let url = extractUrl(m, text);
-    let title = 'audio_download';
+    let title = 'audio';
     if (!url && text) {
       const search = await yts(text);
       if (search && search.videos.length > 0) {
@@ -71,20 +55,63 @@ export default {
       return m.reply(`> 🎵 *Proporciona un enlace o búsqueda para ${exCmd}.*`);
     }
 
-    if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
-      try {
-        await m.reply('> ⏳ Descargando audio...');
-        const dlUrl = await getMediaUrl(url, true);
+    const tmpDir = path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    const timestamp = Date.now();
 
-        await client.sendMessage(m.chat, { 
-          audio: { url: dlUrl }, 
-          mimetype: 'audio/mpeg',
-          fileName: `${title}.mp3`,
-          ptt: false
-        }, { quoted: m });
+    // AUDIO (/play)
+    if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
+      const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
+      try {
+        await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
+
+        // Cambiado para usar el módulo directo de Python
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        await execPromise(ytCmd);
+
+        if (fs.existsSync(outputPath)) {
+          await client.sendMessage(m.chat, { 
+            audio: fs.readFileSync(outputPath), 
+            mimetype: 'audio/mpeg',
+            fileName: `${title}.mp3`,
+            ptt: false
+          }, { quoted: m });
+
+          fs.unlinkSync(outputPath);
+        } else {
+          return m.reply('> ❌ No se pudo generar el archivo de audio.');
+        }
 
       } catch (e) {
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
+      }
+
+    // VIDEO (/play2)
+    } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
+      const outputPath = path.join(tmpDir, `video_${timestamp}.mp4`);
+      try {
+        await m.reply('> ⏳ Obteniendo el video, por favor espera...');
+
+        // Cambiado para usar el módulo directo de Python
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        await execPromise(ytCmd);
+
+        if (fs.existsSync(outputPath)) {
+          await client.sendMessage(m.chat, { 
+            video: fs.readFileSync(outputPath), 
+            caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
+            mimetype: 'video/mp4'
+          }, { quoted: m });
+
+          fs.unlinkSync(outputPath);
+        } else {
+          return m.reply('> ❌ No se pudo generar el archivo de video.');
+        }
+
+      } catch (e) {
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+        await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
       }
     }
   }
