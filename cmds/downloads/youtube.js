@@ -2,49 +2,47 @@ import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
 import https from 'https';
 
-function postJSON(url, body) {
+function requestJSON(url, options = {}, body = null) {
   return new Promise((resolve, reject) => {
-    const data = JSON.stringify(body);
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(url);
-    } catch (e) {
-      return reject(new Error('URL de API inválida'));
-    }
-
-    const options = {
+    const parsedUrl = new URL(url);
+    const reqOptions = {
       hostname: parsedUrl.hostname,
       port: 443,
       path: parsedUrl.pathname + parsedUrl.search,
-      method: 'POST',
+      method: options.method || 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Origin': 'https://cobalt.tools',
+        'Referer': 'https://cobalt.tools/',
+        ...options.headers
       },
-      timeout: 8000
+      timeout: 10000
     };
 
-    const req = https.request(options, (res) => {
-      let responseData = '';
-      res.on('data', (chunk) => { responseData += chunk; });
+    const req = https.request(reqOptions, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         try {
-          resolve(JSON.parse(responseData));
+          const json = JSON.parse(data);
+          resolve(json);
         } catch (e) {
-          reject(new Error('Respuesta no válida'));
+          reject(new Error(`HTTP ${res.statusCode}: Respuesta no JSON`));
         }
       });
     });
 
-    req.on('error', (err) => reject(err));
+    req.on('error', err => reject(err));
     req.on('timeout', () => {
       req.destroy();
       reject(new Error('Tiempo de espera agotado'));
     });
 
-    req.write(data);
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
     req.end();
   });
 }
@@ -77,19 +75,19 @@ export default {
     const isAudio = ['play', 'p', 'mp3'].includes(cmd);
     await m.reply(`> ⏳ Procesando ${isAudio ? 'audio' : 'video'}, por favor espera...`);
 
-    // Instancias públicas actualizadas de Cobalt
-    const instances = [
-      'https://api.cobalt.tools/',
-      'https://cobalt.api.scity.icu/',
-      'https://cobalt.tools/api/'
-    ];
-
     let downloadUrl = null;
     let lastError = '';
 
-    for (const apiUrl of instances) {
+    // 1. Intento con instancias públicas de Cobalt (con cabeceras completas)
+    const cobaltInstances = [
+      'https://api.cobalt.tools',
+      'https://cobalt-api.kwiatek.xyz',
+      'https://api.wuk.sh'
+    ];
+
+    for (const apiUrl of cobaltInstances) {
       try {
-        const data = await postJSON(apiUrl, {
+        const data = await requestJSON(apiUrl, { method: 'POST' }, {
           url: url,
           downloadMode: isAudio ? 'audio' : 'auto',
           audioFormat: 'mp3',
@@ -106,9 +104,26 @@ export default {
           lastError = data.text;
         }
       } catch (err) {
-        // Ignorar fallos de DNS/red y probar con la siguiente instancia de la lista
         lastError = err.message;
-        continue;
+      }
+    }
+
+    // 2. Respaldos alternativos si Cobalt no responde
+    if (!downloadUrl) {
+      try {
+        // Fallback a API pública de Invidious / Ytdl
+        const invidiousApi = `https://inv.hostux.net/api/v1/videos/${url.split('v=')[1] || url.split('/').pop()}`;
+        const videoData = await requestJSON(invidiousApi);
+
+        if (isAudio && videoData.adaptiveFormats) {
+          const audioStream = videoData.adaptiveFormats.find(f => f.type?.includes('audio'));
+          if (audioStream) downloadUrl = audioStream.url;
+        } else if (videoData.formatStreams) {
+          const videoStream = videoData.formatStreams.reverse().find(f => f.url);
+          if (videoStream) downloadUrl = videoStream.url;
+        }
+      } catch (e) {
+        // Ignorar fallo de Invidious
       }
     }
 
