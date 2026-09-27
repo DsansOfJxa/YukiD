@@ -69,7 +69,7 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -96,7 +96,7 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
