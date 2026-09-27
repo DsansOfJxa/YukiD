@@ -5,6 +5,9 @@ import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 
+// Importar el binario estático de ffmpeg
+import ffmpegPath from 'ffmpeg-static';
+
 const execPromise = promisify(exec);
 
 export default {
@@ -59,9 +62,9 @@ export default {
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
     const timestamp = Date.now();
 
-    // Ruta hacia el archivo cookies.txt en la raíz
     const cookiesPath = path.join(process.cwd(), 'cookies.txt');
     const cookieFlag = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
+    const ffmpegFlag = ffmpegPath ? `--ffmpeg-location "${ffmpegPath}"` : '';
 
     // AUDIO (/play)
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
@@ -69,7 +72,7 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} ${ffmpegFlag} --no-check-certificates --extractor-args "youtube:player_client=mweb" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -96,7 +99,7 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} ${ffmpegFlag} --no-check-certificates --extractor-args "youtube:player_client=mweb" -f "b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
