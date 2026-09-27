@@ -1,14 +1,45 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
 
-// Importar el binario estático de ffmpeg
-import ffmpegPath from 'ffmpeg-static';
+// Lista de instancias públicas de Cobalt API para alta disponibilidad
+const COBALT_INSTANCES = [
+  'https://cobalt-api.kwiatekmokry.pl',
+  'https://api.cobalt.tools',
+  'https://cobalt.qal.jp',
+  'https://co.wuk.sh'
+];
 
-const execPromise = promisify(exec);
+async function fetchFromCobalt(youtubeUrl, isAudioOnly = false) {
+  let lastError = null;
+
+  for (const instance of COBALT_INSTANCES) {
+    try {
+      const response = await fetch(`${instance}/`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: youtubeUrl,
+          downloadMode: isAudioOnly ? 'audio' : 'auto',
+          audioFormat: 'mp3'
+        })
+      });
+
+      if (!response.ok) continue;
+
+      const data = await response.json();
+
+      if (data.url) return data.url;
+      if (data.status === 'stream' || data.status === 'redirect') return data.url;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw new Error(lastError ? lastError.message : 'Todas las instancias de descarga fallaron.');
+}
 
 export default {
   help: ['play', 'play2', 'ytsearch'],
@@ -44,7 +75,7 @@ export default {
     }
 
     let url = extractUrl(m, text);
-    let title = 'audio';
+    let title = 'media';
     if (!url && text) {
       const search = await yts(text);
       if (search && search.videos.length > 0) {
@@ -58,64 +89,38 @@ export default {
       return m.reply(`> 🎵 *Proporciona un enlace o búsqueda para ${exCmd}.*`);
     }
 
-    const tmpDir = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-    const timestamp = Date.now();
-
-    const cookiesPath = path.join(process.cwd(), 'cookies.txt');
-    const cookieFlag = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
-    const ffmpegFlag = ffmpegPath ? `--ffmpeg-location "${ffmpegPath}"` : '';
-
     // AUDIO (/play)
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} ${ffmpegFlag} --no-check-certificates --extractor-args "youtube:player_client=mweb" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
+        const downloadUrl = await fetchFromCobalt(url, true);
 
-        if (fs.existsSync(outputPath)) {
-          await client.sendMessage(m.chat, { 
-            audio: fs.readFileSync(outputPath), 
-            mimetype: 'audio/mpeg',
-            fileName: `${title}.mp3`,
-            ptt: false
-          }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
-        } else {
-          return m.reply('> ❌ No se pudo generar el archivo de audio.');
-        }
+        await client.sendMessage(m.chat, { 
+          audio: { url: downloadUrl }, 
+          mimetype: 'audio/mpeg',
+          fileName: `${title}.mp3`,
+          ptt: false
+        }, { quoted: m });
 
       } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
       }
 
     // VIDEO (/play2)
     } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `video_${timestamp}.mp4`);
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        const ytCmd = `python3 -m yt_dlp ${cookieFlag} ${ffmpegFlag} --no-check-certificates --extractor-args "youtube:player_client=mweb" -f "b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
+        const downloadUrl = await fetchFromCobalt(url, false);
 
-        if (fs.existsSync(outputPath)) {
-          await client.sendMessage(m.chat, { 
-            video: fs.readFileSync(outputPath), 
-            caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
-            mimetype: 'video/mp4'
-          }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
-        } else {
-          return m.reply('> ❌ No se pudo generar el archivo de video.');
-        }
+        await client.sendMessage(m.chat, { 
+          video: { url: downloadUrl }, 
+          caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
+          mimetype: 'video/mp4'
+        }, { quoted: m });
 
       } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
       }
     }
