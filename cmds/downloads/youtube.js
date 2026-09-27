@@ -65,54 +65,47 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
-
-        if (fs.existsSync(outputPath)) {
+          try {
+        await m.reply('> ⏳ Obteniendo el audio de forma remota, por favor espera...');
+        
+        const response = await fetch(`https://fgmods.xyz{encodeURIComponent(url)}&apikey=elrebelde21`);
+        const res = await response.json();
+        
+        if (res.status && res.result && res.result.dl_url) {
           await client.sendMessage(m.chat, { 
-            audio: fs.readFileSync(outputPath), 
+            audio: { url: res.result.dl_url }, 
             mimetype: 'audio/mpeg',
-            fileName: `${title}.mp3`,
+            fileName: `${res.result.title || title}.mp3`,
             ptt: false
           }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
         } else {
-          return m.reply('> ❌ No se pudo generar el archivo de audio.');
+          return m.reply('> ❌ El servidor de descargas externo no pudo procesar este audio.');
         }
-
       } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-        await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
+        await m.reply(`> ⚠️ *Ocurrió un error con la API de audio.*\n[Causa: *${e.message}*]`);
       }
 
     // VIDEO (/play2)
     } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `video_${timestamp}.mp4`);
-      try {
-        await m.reply('> ⏳ Obteniendo el video, por favor espera...');
-
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
-
-        if (fs.existsSync(outputPath)) {
+           try {
+        await m.reply('> ⏳ Obteniendo el video de forma remota, por favor espera...');
+        
+        const response = await fetch(`https://fgmods.xyz{encodeURIComponent(url)}&apikey=elrebelde21`);
+        const res = await response.json();
+        
+        if (res.status && res.result && res.result.dl_url) {
           await client.sendMessage(m.chat, { 
-            video: fs.readFileSync(outputPath), 
-            caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
+            video: { url: res.result.dl_url }, 
+            caption: `🎬 *Video Descargado*\n\n• *Título:* ${res.result.title || title}`,
             mimetype: 'video/mp4'
           }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
         } else {
-          return m.reply('> ❌ No se pudo generar el archivo de video.');
+          return m.reply('> ❌ El servidor de descargas externo no pudo procesar este video.');
         }
-
       } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-        await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
+        await m.reply(`> ⚠️ *Ocurrió un error con la API de video.*\n[Causa: *${e.message}*]`);
       }
+
     }
   }
 };
