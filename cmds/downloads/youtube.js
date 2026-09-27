@@ -1,47 +1,19 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
-
-const execPromise = promisify(exec);
 
 export default {
-  help: ['play', 'play2', 'ytsearch'],
-  command: ['play', 'p', 'mp3', 'p3', 'ytaudio', 'play2', 'mp4', 'ytv', 'video', 'ytsearch', 'search', 'yts'],
+  help: ['play', 'play2'],
+  command: ['play', 'p', 'mp3', 'play2', 'mp4', 'video'],
   category: 'downloads',
   heavy: true,
-  desc: 'Comando unificado de YouTube.',
+  desc: 'Descargas de YouTube mediante API externa gratuita.',
   run: async (client, m, args, usedPrefix, command) => {
     const cmd = command.toLowerCase();
     const text = args.join(' ').trim();
 
-    if (['ytsearch', 'search', 'yts'].includes(cmd)) {
-      if (!text) return m.reply('> 🔎 *Ingrese un término de búsqueda.*');
-      try {
-        const ress = await yts(text);
-        const armar = ress.all;
-        if (!armar?.length) return m.reply('No se encontraron resultados.');
-        
-        let teks2 = armar.map((v) => {
-          switch (v.type) {
-            case 'video':
-              return `➩ *Título ›* *${v.title}* \n*Duración ›* ${v.timestamp}\n*Subido ›* ${v.ago}\n✿ *Vistas ›* ${v.views}\n❒ *Url ›* ${v.url}`.trim();
-            case 'channel':
-              return `Canal › *${v.name}*\n❒ Url › ${v.url}\nSubscriptores › ${v.subCountLabel} (${v.subCount})\n✿ Videos totales › ${v.videoCount}`.trim();
-          }
-        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─〬 ׅ┄╌ ۫... ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
-
-        await client.sendMessage(m.chat, { image: { url: armar[0].image }, caption: teks2 }, { quoted: m });
-      } catch (e) {
-        m.reply(`> Error al buscar en YouTube.\n[Causa: *${e.message}*]`);
-      }
-      return;
-    }
-
     let url = extractUrl(m, text);
-    let title = 'audio';
+    let title = 'contenido';
+
     if (!url && text) {
       const search = await yts(text);
       if (search && search.videos.length > 0) {
@@ -51,68 +23,54 @@ export default {
     }
 
     if (!url) {
-      const exCmd = ['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd) ? 'audio' : 'video';
-      return m.reply(`> 🎵 *Proporciona un enlace o búsqueda para ${exCmd}.*`);
+      return m.reply('> 🎵 *Proporciona un enlace o nombre para buscar.*');
     }
 
-    const tmpDir = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-    const timestamp = Date.now();
+    const isAudio = ['play', 'p', 'mp3'].includes(cmd);
+    await m.reply(`> ⏳ Procesando ${isAudio ? 'audio' : 'video'}, por favor espera...`);
 
-    // AUDIO (/play)
-    if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
-      try {
-        await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
+    try {
+      // Petición a la API pública de Cobalt
+      const response = await fetch('https://api.cobalt.tools/', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: url,
+          downloadMode: isAudio ? 'audio' : 'auto',
+          audioFormat: 'mp3',
+          videoQuality: '720'
+        })
+      });
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
+      const data = await response.json();
 
-        if (fs.existsSync(outputPath)) {
-          await client.sendMessage(m.chat, { 
-            audio: fs.readFileSync(outputPath), 
+      if (data.status === 'stream' || data.status === 'redirect') {
+        const fileUrl = data.url;
+
+        if (isAudio) {
+          await client.sendMessage(m.chat, {
+            audio: { url: fileUrl },
             mimetype: 'audio/mpeg',
             fileName: `${title}.mp3`,
             ptt: false
           }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
         } else {
-          return m.reply('> ❌ No se pudo generar el archivo de audio.');
-        }
-
-      } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-        await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
-      }
-
-    // VIDEO (/play2)
-    } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `video_${timestamp}.mp4`);
-      try {
-        await m.reply('> ⏳ Obteniendo el video, por favor espera...');
-
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
-        await execPromise(ytCmd);
-
-        if (fs.existsSync(outputPath)) {
-          await client.sendMessage(m.chat, { 
-            video: fs.readFileSync(outputPath), 
+          await client.sendMessage(m.chat, {
+            video: { url: fileUrl },
             caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
             mimetype: 'video/mp4'
           }, { quoted: m });
-
-          fs.unlinkSync(outputPath);
-        } else {
-          return m.reply('> ❌ No se pudo generar el archivo de video.');
         }
-
-      } catch (e) {
-        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-        await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
+      } else {
+        return m.reply('> ❌ No se pudo obtener el enlace de descarga directo.');
       }
+
+    } catch (e) {
+      console.error(e);
+      await m.reply(`> ⚠️ *Ocurrió un error al procesar el enlace.*\n[Causa: *${e.message}*]`);
     }
   }
 };
