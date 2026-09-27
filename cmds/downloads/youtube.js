@@ -17,6 +17,9 @@ export default {
     const cmd = command.toLowerCase();
     const text = args.join(' ').trim();
 
+    // =========================================================================
+    // 1. MOTOR DE BÚSQUEDA DE YOUTUBE (.ytsearch)
+    // =========================================================================
     if (['ytsearch', 'search', 'yts'].includes(cmd)) {
       if (!text) return m.reply('> 🔎 *Ingrese un término de búsqueda.*');
       try {
@@ -40,6 +43,9 @@ export default {
       return;
     }
 
+    // =========================================================================
+    // 2. EXTRACCIÓN Y PROCESAMIENTO DE ENLACES
+    // =========================================================================
     let url = extractUrl(m, text);
     let title = 'audio';
     if (!url && text) {
@@ -55,17 +61,11 @@ export default {
       return m.reply(`> 🎵 *Proporciona un enlace o búsqueda para ${exCmd}.*`);
     }
 
-    const tmpDir = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-    const timestamp = Date.now();
-
-    // AUDIO (/play)
+    // =========================================================================
+    // 3. SECCIÓN DE AUDIO (/play)
+    // =========================================================================
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
-      const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
       try {
-        await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
-
-          try {
         await m.reply('> ⏳ Obteniendo el audio de forma remota, por favor espera...');
         
         const response = await fetch(`https://fgmods.xyz{encodeURIComponent(url)}&apikey=elrebelde21`);
@@ -85,9 +85,11 @@ export default {
         await m.reply(`> ⚠️ *Ocurrió un error con la API de audio.*\n[Causa: *${e.message}*]`);
       }
 
-    // VIDEO (/play2)
+    // =========================================================================
+    // 4. SECCIÓN DE VIDEO (/play2)
+    // =========================================================================
     } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
-           try {
+      try {
         await m.reply('> ⏳ Obteniendo el video de forma remota, por favor espera...');
         
         const response = await fetch(`https://fgmods.xyz{encodeURIComponent(url)}&apikey=elrebelde21`);
@@ -105,7 +107,6 @@ export default {
       } catch (e) {
         await m.reply(`> ⚠️ *Ocurrió un error con la API de video.*\n[Causa: *${e.message}*]`);
       }
-
     }
   }
 };
