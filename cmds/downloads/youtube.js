@@ -66,7 +66,7 @@ export default {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
         // Clientes actualizados y ejecutor JS activado para bypass de antibot
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=mweb,tv_embedded" --js-runtimes node --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+       const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=android_vr,web_creator" --js-runtimes node --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -94,7 +94,7 @@ export default {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
         // Clientes actualizados y ejecutor JS activado para bypass de antibot
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=mweb,tv_embedded" --js-runtimes node --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+      const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=android_vr,web_creator" --js-runtimes node --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
