@@ -6,7 +6,7 @@ export default {
   command: ['play', 'p', 'mp3', 'play2', 'mp4', 'video'],
   category: 'downloads',
   heavy: true,
-  desc: 'Descargas de YouTube mediante API externa gratuita.',
+  desc: 'Descargas de YouTube mediante API externa limpia.',
   run: async (client, m, args, usedPrefix, command) => {
     const cmd = command.toLowerCase();
     const text = args.join(' ').trim();
@@ -23,54 +23,76 @@ export default {
     }
 
     if (!url) {
-      return m.reply('> 🎵 *Proporciona un enlace o nombre para buscar.*');
+      return m.reply('> 🎵 *Proporciona un enlace o término de búsqueda.*');
     }
 
     const isAudio = ['play', 'p', 'mp3'].includes(cmd);
     await m.reply(`> ⏳ Procesando ${isAudio ? 'audio' : 'video'}, por favor espera...`);
 
-    try {
-      // Petición a la API pública de Cobalt
-      const response = await fetch('https://api.cobalt.tools/', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: url,
-          downloadMode: isAudio ? 'audio' : 'auto',
-          audioFormat: 'mp3',
-          videoQuality: '720'
-        })
-      });
+    // Lista de instancias públicas de Cobalt para redundancia
+    const instances = [
+      'https://api.cobalt.tools/',
+      'https://cobalt-api.kwiatek.xyz/',
+      'https://api.wuk.sh/'
+    ];
 
-      const data = await response.json();
+    let downloadUrl = null;
+    let lastError = '';
 
-      if (data.status === 'stream' || data.status === 'redirect') {
-        const fileUrl = data.url;
+    for (const apiUrl of instances) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: url,
+            downloadMode: isAudio ? 'audio' : 'auto',
+            audioFormat: 'mp3',
+            videoQuality: '720'
+          })
+        });
 
-        if (isAudio) {
-          await client.sendMessage(m.chat, {
-            audio: { url: fileUrl },
-            mimetype: 'audio/mpeg',
-            fileName: `${title}.mp3`,
-            ptt: false
-          }, { quoted: m });
-        } else {
-          await client.sendMessage(m.chat, {
-            video: { url: fileUrl },
-            caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
-            mimetype: 'video/mp4'
-          }, { quoted: m });
+        const data = await response.json();
+
+        // Cobalt puede devolver 'stream', 'redirect', 'tunnel' o 'picker'
+        if (['stream', 'redirect', 'tunnel'].includes(data.status) && data.url) {
+          downloadUrl = data.url;
+          break;
+        } else if (data.status === 'picker' && data.picker?.length > 0) {
+          downloadUrl = data.picker[0].url;
+          break;
+        } else if (data.text) {
+          lastError = data.text;
         }
-      } else {
-        return m.reply('> ❌ No se pudo obtener el enlace de descarga directo.');
+      } catch (err) {
+        lastError = err.message;
       }
+    }
 
+    if (!downloadUrl) {
+      return m.reply(`> ❌ No se pudo procesar la descarga en este momento.\n[Detalle: *${lastError || 'Servidores ocupados'}*]`);
+    }
+
+    try {
+      if (isAudio) {
+        await client.sendMessage(m.chat, {
+          audio: { url: downloadUrl },
+          mimetype: 'audio/mpeg',
+          fileName: `${title}.mp3`,
+          ptt: false
+        }, { quoted: m });
+      } else {
+        await client.sendMessage(m.chat, {
+          video: { url: downloadUrl },
+          caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
+          mimetype: 'video/mp4'
+        }, { quoted: m });
+      }
     } catch (e) {
-      console.error(e);
-      await m.reply(`> ⚠️ *Ocurrió un error al procesar el enlace.*\n[Causa: *${e.message}*]`);
+      await m.reply(`> ⚠️ *Error al enviar el archivo a WhatsApp.*\n[Causa: *${e.message}*]`);
     }
   }
 };
