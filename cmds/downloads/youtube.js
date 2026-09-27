@@ -1,44 +1,26 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
 
-// Lista de instancias públicas de Cobalt API para alta disponibilidad
-const COBALT_INSTANCES = [
-  'https://cobalt-api.kwiatekmokry.pl',
-  'https://api.cobalt.tools',
-  'https://cobalt.qal.jp',
-  'https://co.wuk.sh'
-];
-
-async function fetchFromCobalt(youtubeUrl, isAudioOnly = false) {
-  let lastError = null;
-
-  for (const instance of COBALT_INSTANCES) {
-    try {
-      const response = await fetch(`${instance}/`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: youtubeUrl,
-          downloadMode: isAudioOnly ? 'audio' : 'auto',
-          audioFormat: 'mp3'
-        })
-      });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-
-      if (data.url) return data.url;
-      if (data.status === 'stream' || data.status === 'redirect') return data.url;
-    } catch (err) {
-      lastError = err;
-    }
+async function getMediaUrl(youtubeUrl, isAudio = true) {
+  // Servicio alternativo de extracción por API
+  const apiUrl = `https://api.vreden.web.id/api/ytmp3?url=${encodeURIComponent(youtubeUrl)}`;
+  const res = await fetch(apiUrl);
+  if (!res.ok) throw new Error('Falló el servidor de conversión.');
+  
+  const data = await res.json();
+  if (data?.result?.download?.url) {
+    return data.result.download.url;
+  }
+  
+  // Respaldo secundario si falla la primera API
+  const backupApi = `https://api.lolhuman.xyz/api/ytaudio2?apikey=GataDios&url=${encodeURIComponent(youtubeUrl)}`;
+  const res2 = await fetch(backupApi);
+  if (res2.ok) {
+    const data2 = await res2.json();
+    if (data2?.result?.link) return data2.result.link;
   }
 
-  throw new Error(lastError ? lastError.message : 'Todas las instancias de descarga fallaron.');
+  throw new Error('No se pudo extraer el enlace de descarga.');
 }
 
 export default {
@@ -65,7 +47,7 @@ export default {
             case 'channel':
               return `Canal › *${v.name}*\n❒ Url › ${v.url}\nSubscriptores › ${v.subCountLabel} (${v.subCount})\n✿ Videos totales › ${v.videoCount}`.trim();
           }
-        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─〬 ׅ┄╌ ۫... ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
+        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─ challenge ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
 
         await client.sendMessage(m.chat, { image: { url: armar[0].image }, caption: teks2 }, { quoted: m });
       } catch (e) {
@@ -75,7 +57,7 @@ export default {
     }
 
     let url = extractUrl(m, text);
-    let title = 'media';
+    let title = 'audio_download';
     if (!url && text) {
       const search = await yts(text);
       if (search && search.videos.length > 0) {
@@ -89,15 +71,13 @@ export default {
       return m.reply(`> 🎵 *Proporciona un enlace o búsqueda para ${exCmd}.*`);
     }
 
-    // AUDIO (/play)
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
       try {
-        await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
-
-        const downloadUrl = await fetchFromCobalt(url, true);
+        await m.reply('> ⏳ Descargando audio...');
+        const dlUrl = await getMediaUrl(url, true);
 
         await client.sendMessage(m.chat, { 
-          audio: { url: downloadUrl }, 
+          audio: { url: dlUrl }, 
           mimetype: 'audio/mpeg',
           fileName: `${title}.mp3`,
           ptt: false
@@ -105,23 +85,6 @@ export default {
 
       } catch (e) {
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
-      }
-
-    // VIDEO (/play2)
-    } else if (['play2', 'mp4', 'ytv', 'video'].includes(cmd)) {
-      try {
-        await m.reply('> ⏳ Obteniendo el video, por favor espera...');
-
-        const downloadUrl = await fetchFromCobalt(url, false);
-
-        await client.sendMessage(m.chat, { 
-          video: { url: downloadUrl }, 
-          caption: `🎬 *Video Descargado*\n\n• *Título:* ${title}`,
-          mimetype: 'video/mp4'
-        }, { quoted: m });
-
-      } catch (e) {
-        await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
       }
     }
   }
