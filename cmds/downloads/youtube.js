@@ -1,13 +1,60 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
-import axios from 'axios';
+import https from 'https';
+
+function postJSON(url, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch (e) {
+      return reject(new Error('URL de API inválida'));
+    }
+
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      timeout: 8000
+    };
+
+    const req = https.request(options, (res) => {
+      let responseData = '';
+      res.on('data', (chunk) => { responseData += chunk; });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(responseData));
+        } catch (e) {
+          reject(new Error('Respuesta no válida'));
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Tiempo de espera agotado'));
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
 
 export default {
   help: ['play', 'play2'],
   command: ['play', 'p', 'mp3', 'play2', 'mp4', 'video'],
   category: 'downloads',
   heavy: true,
-  desc: 'Descargas de YouTube mediante API externa limpia.',
+  desc: 'Descargas de YouTube mediante API externa.',
   run: async (client, m, args, usedPrefix, command) => {
     const cmd = command.toLowerCase();
     const text = args.join(' ').trim();
@@ -30,11 +77,11 @@ export default {
     const isAudio = ['play', 'p', 'mp3'].includes(cmd);
     await m.reply(`> ⏳ Procesando ${isAudio ? 'audio' : 'video'}, por favor espera...`);
 
-    // Lista de endpoints públicos alternativos para máxima fiabilidad
+    // Instancias públicas actualizadas de Cobalt
     const instances = [
-      'https://api.cobalt.tools',
-      'https://cobalt-api.kwiatek.xyz',
-      'https://api.wuk.sh'
+      'https://api.cobalt.tools/',
+      'https://cobalt.api.scity.icu/',
+      'https://cobalt.tools/api/'
     ];
 
     let downloadUrl = null;
@@ -42,18 +89,11 @@ export default {
 
     for (const apiUrl of instances) {
       try {
-        const { data } = await axios.post(apiUrl, {
+        const data = await postJSON(apiUrl, {
           url: url,
           downloadMode: isAudio ? 'audio' : 'auto',
           audioFormat: 'mp3',
           videoQuality: '720'
-        }, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-          },
-          timeout: 15000 // 15 segundos máximo por endpoint
         });
 
         if (['stream', 'redirect', 'tunnel'].includes(data.status) && data.url) {
@@ -66,7 +106,9 @@ export default {
           lastError = data.text;
         }
       } catch (err) {
-        lastError = err.response?.data?.text || err.message;
+        // Ignorar fallos de DNS/red y probar con la siguiente instancia de la lista
+        lastError = err.message;
+        continue;
       }
     }
 
@@ -90,7 +132,7 @@ export default {
         }, { quoted: m });
       }
     } catch (e) {
-      await m.reply(`> ⚠️ *Error al enviar el archivo a WhatsApp.*\n[Causa: *${e.message}*]`);
+      await m.reply(`> ⚠️ *Error al enviar a WhatsApp.*\n[Causa: *${e.message}*]`);
     }
   }
 };
