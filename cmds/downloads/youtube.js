@@ -1,5 +1,6 @@
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
+import axios from 'axios';
 
 export default {
   help: ['play', 'play2'],
@@ -29,11 +30,11 @@ export default {
     const isAudio = ['play', 'p', 'mp3'].includes(cmd);
     await m.reply(`> ⏳ Procesando ${isAudio ? 'audio' : 'video'}, por favor espera...`);
 
-    // Lista de instancias públicas de Cobalt para redundancia
+    // Lista de endpoints públicos alternativos para máxima fiabilidad
     const instances = [
-      'https://api.cobalt.tools/',
-      'https://cobalt-api.kwiatek.xyz/',
-      'https://api.wuk.sh/'
+      'https://api.cobalt.tools',
+      'https://cobalt-api.kwiatek.xyz',
+      'https://api.wuk.sh'
     ];
 
     let downloadUrl = null;
@@ -41,23 +42,20 @@ export default {
 
     for (const apiUrl of instances) {
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
+        const { data } = await axios.post(apiUrl, {
+          url: url,
+          downloadMode: isAudio ? 'audio' : 'auto',
+          audioFormat: 'mp3',
+          videoQuality: '720'
+        }, {
           headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
           },
-          body: JSON.stringify({
-            url: url,
-            downloadMode: isAudio ? 'audio' : 'auto',
-            audioFormat: 'mp3',
-            videoQuality: '720'
-          })
+          timeout: 15000 // 15 segundos máximo por endpoint
         });
 
-        const data = await response.json();
-
-        // Cobalt puede devolver 'stream', 'redirect', 'tunnel' o 'picker'
         if (['stream', 'redirect', 'tunnel'].includes(data.status) && data.url) {
           downloadUrl = data.url;
           break;
@@ -68,12 +66,12 @@ export default {
           lastError = data.text;
         }
       } catch (err) {
-        lastError = err.message;
+        lastError = err.response?.data?.text || err.message;
       }
     }
 
     if (!downloadUrl) {
-      return m.reply(`> ❌ No se pudo procesar la descarga en este momento.\n[Detalle: *${lastError || 'Servidores ocupados'}*]`);
+      return m.reply(`> ❌ No se pudo procesar la descarga.\n[Detalle: *${lastError || 'Servidores no disponibles'}*]`);
     }
 
     try {
