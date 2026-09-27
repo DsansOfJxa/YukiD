@@ -31,7 +31,7 @@ export default {
             case 'channel':
               return `Canal › *${v.name}*\n❒ Url › ${v.url}\nSubscriptores › ${v.subCountLabel} (${v.subCount})\n✿ Videos totales › ${v.videoCount}`.trim();
           }
-        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─〬 ׅ┄╌ ۫... ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
+        }).filter((v) => v).join('\n\n╾۪〬─ ┄۫╌ ׄ┄┈۪ ─ challenge ─ׄ─۪〬 ┈ ┄۫╌ ┈┄۪ ─ׄ〬\n\n');
 
         await client.sendMessage(m.chat, { image: { url: armar[0].image }, caption: teks2 }, { quoted: m });
       } catch (e) {
@@ -65,8 +65,8 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        // Clientes actualizados y ejecutor JS activado para bypass de antibot
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=mweb,tv_embedded" --js-runtimes node --no-check-certificates -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -93,8 +93,8 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        // Clientes actualizados y ejecutor JS activado para bypass de antibot
+        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=mweb,tv_embedded" --js-runtimes node --no-check-certificates -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
