@@ -59,14 +59,17 @@ export default {
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
     const timestamp = Date.now();
 
+    // Ruta hacia el archivo cookies.txt en la raíz
+    const cookiesPath = path.join(process.cwd(), 'cookies.txt');
+    const cookieFlag = fs.existsSync(cookiesPath) ? `--cookies "${cookiesPath}"` : '';
+
     // AUDIO (/play)
     if (['play', 'p', 'mp3', 'p3', 'ytaudio'].includes(cmd)) {
       const outputPath = path.join(tmpDir, `audio_${timestamp}.mp3`);
       try {
         await m.reply('> ⏳ Obteniendo el audio, por favor espera...');
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --extractor-args "youtube:player_client=ios,android" -f "ba/b" -x --audio-format mp3 -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
@@ -93,8 +96,7 @@ export default {
       try {
         await m.reply('> ⏳ Obteniendo el video, por favor espera...');
 
-        // Cambiado para usar el módulo directo de Python
-        const ytCmd = `python3 -m yt_dlp --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
+        const ytCmd = `python3 -m yt_dlp ${cookieFlag} --extractor-args "youtube:player_client=ios,android" -f "bv*[ext=mp4]+ba*[ext=m4a]/b[ext=mp4]/b" -o "${outputPath}" "${url}"`;
         await execPromise(ytCmd);
 
         if (fs.existsSync(outputPath)) {
